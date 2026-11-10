@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Inteligência Corporativa - Gateway de Registros</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        darkbg: '#090d16',
+                        cardbg: '#0f172a',
+                        cardborder: '#1e293b',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #090d16; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        @keyframes floatSlow {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        @keyframes pulseCyanGlow {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.65; transform: scale(1.05); }
+        }
+        .animate-float-slow {
+            animation: floatSlow 4s ease-in-out infinite;
+        }
+        .animate-pulse-glow {
+            animation: pulseCyanGlow 3.5s ease-in-out infinite;
+        }
+        .corporate-glass {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(6, 182, 212, 0.28);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75), 0 0 35px -5px rgba(6, 182, 212, 0.15);
+        }
+
+        @media print {
+            body { background: #fff !important; color: #000 !important; }
+            #searchForm, #headerSection, #actionBar, footer, .no-print, .floating-support { display: none !important; }
+            #resultContainer { display: block !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
+            .category-card { break-inside: avoid; border: 1px solid #cbd5e1 !important; background: #fff !important; color: #000 !important; margin-bottom: 1.5rem !important; }
+            .field-row { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; color: #000 !important; }
+            .copy-btn { display: none !important; }
+            .print-header { display: block !important; }
+        }
+        .print-header { display: none; }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-100 min-h-screen flex flex-col items-center justify-between p-4 sm:p-6 lg:p-8">
+    <div class="w-full max-w-5xl space-y-6">
+        <header id="headerSection" class="w-full bg-cardbg/80 backdrop-blur-md rounded-2xl p-6 border border-cardborder shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white flex-shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">Central de Inteligência Corporativa</h1>
+                        <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-cyan-950 text-cyan-400 border border-cyan-800 rounded-md">v2.0 PRO</span>
+                    </div>
+                    <p class="text-slate-400 text-xs sm:text-sm mt-0.5">Gateway unificado de triagem de cadastros e inteligência de registros</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                <a href="https://t.me/centraldo7chat" target="_blank" rel="noopener noreferrer" 
+                   class="group inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-sky-950/40 hover:bg-sky-900/60 border border-sky-800/80 text-sky-300 text-xs font-semibold transition shadow-sm hover:shadow-sky-500/20">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-sky-500"></span>
+                    </span>
+                    <img src="https://telegram.org/img/t_logo.png" alt="Telegram" class="w-4 h-4 rounded-full group-hover:scale-110 transition-transform">
+                    <span>Suporte Telegram</span>
+                </a>
+
+                <button type="button" id="btnOpenFaq" class="px-2.5 py-1.5 text-xs text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition">FAQ</button>
+                <button type="button" id="btnOpenTerms" class="px-2.5 py-1.5 text-xs text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition">Termos</button>
+
+                <!-- STATUS DO USUÁRIO & CRÉDITOS / BOTÃO ENTRAR -->
+                <div id="userAuthContainer" class="flex items-center space-x-2"></div>
+            </div>
+        </header>
+        <!-- FLOATING COUNTDOWN TIMER WIDGET -->
+        <div id="floatingTimeWidget" class="hidden fixed bottom-6 left-6 z-40 corporate-glass rounded-2xl px-4 py-2.5 shadow-2xl flex items-center space-x-3 transition-all duration-300">
+            <span class="flex h-3 w-3 relative">
+                <span id="timePingAnim" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span id="timeDotStatus" class="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+            </span>
+            <div class="text-left">
+                <span class="block text-[10px] text-slate-400 uppercase tracking-wider font-bold" id="floatingTimeLabel">Tempo de Acesso</span>
+                <span id="floatingTimeText" class="block text-xs sm:text-sm font-mono font-extrabold text-white">--:--:--</span>
+            </div>
+            <button type="button" id="btnFloatingRenew" class="ml-1 px-2.5 py-1 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-[10px] font-bold text-cyan-300 hover:text-white transition">
+                Renovar
+            </button>
+        </div>
+
+        <!-- BANNER DE AVISO TRIAL / DELAY -->
+        <div id="trialNoticeBanner" class="hidden p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/70 via-slate-900 to-slate-900 border border-cyan-500/40 text-xs flex flex-col sm:flex-row items-center justify-between gap-2 shadow-lg">
+            <div class="flex items-center space-x-2.5">
+                <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-cyan-500 text-slate-950">Demonstração</span>
+                <span class="text-slate-200">Período de teste: <strong class="text-white" id="trialQueriesRemainingText">20 pesquisas restantes</strong> • Delay obrigatório de 1 minuto entre buscas.</span>
+            </div>
+            <div id="trialCooldownTimer" class="hidden text-amber-400 font-mono font-bold text-xs"></div>
+        </div>
+
+        <!-- CARD MODERNO DE TEMPO DE ACESSO EXPIRADO (BLOQUEIO INTELIGENTE) -->
+        <div id="expiredAccessCard" class="hidden relative w-full corporate-glass rounded-3xl p-8 sm:p-12 text-center space-y-5 overflow-hidden transition-all duration-300">
+            <div class="absolute -top-20 -left-20 w-64 h-64 bg-amber-500/15 rounded-full blur-3xl pointer-events-none animate-pulse-glow"></div>
+            <div class="w-16 h-16 rounded-2xl bg-amber-950/80 border border-amber-600/50 text-amber-400 mx-auto flex items-center justify-center text-3xl shadow-xl shadow-amber-500/10">
+                ⏱️
+            </div>
+            <div class="max-w-md mx-auto space-y-2">
+                <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-amber-950/80 border border-amber-600/40 text-amber-300 text-[11px] font-bold uppercase tracking-wider">
+                    <span>Período de Acesso Esgotado</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white tracking-tight">Tempo de Consulta Concluído</h3>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                    Seu plano de assinatura por tempo expirou. Renove sua vigência via Pix para desbloquear consultas ilimitadas instantaneamente.
+                </p>
+            </div>
+            <div class="pt-2">
+                <button type="button" id="btnExpiredRenew" class="px-7 py-3.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs sm:text-sm transition shadow-lg shadow-amber-600/30 flex items-center justify-center space-x-2 mx-auto">
+                    <span>⚡ Renovar Acesso com Desconto (Pix)</span>
+                </button>
+            </div>
+        </div>
+
+
+        <!-- BANNER/OVERLAY DE ACESSO BLOQUEADO (EXIBIDO QUANDO NÃO AUTENTICADO) -->
+        <div id="lockedViewBanner" class="relative w-full corporate-glass rounded-3xl p-8 sm:p-14 text-center space-y-6 overflow-hidden transition-all duration-300">
+            <!-- AMBIENT GLOW ORBS -->
+            <div class="absolute -top-24 -left-24 w-72 h-72 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none animate-pulse-glow"></div>
+            <div class="absolute -bottom-24 -right-24 w-72 h-72 bg-blue-600/15 rounded-full blur-3xl pointer-events-none animate-pulse-glow" style="animation-delay: 1.75s;"></div>
+
+            <div class="relative z-10 space-y-4">
+                <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-950 via-slate-900 to-slate-950 border border-cyan-500/40 text-cyan-400 mx-auto flex items-center justify-center text-3xl shadow-xl shadow-cyan-500/15 animate-float-slow">
+                    <svg class="w-10 h-10 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                </div>
+                <div class="max-w-md mx-auto space-y-2">
+                    <div class="inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 text-[11px] font-bold uppercase tracking-wider shadow-inner">
+                        <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping"></span>
+                        <span>Área Restrita &bull; Acesso Protegido</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Portal Corporativo Bloqueado</h2>
+                    <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                        É necessária uma sessão de operador ativa para interagir com o gateway de consultas e visualizar registros. Faça login com suas credenciais ou solicite um cadastro para liberar o painel.
+                    </p>
+                </div>
+                <div class="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <button type="button" onclick="window.openAuthModal('login')" class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs sm:text-sm transition duration-150 shadow-lg shadow-cyan-600/30 hover:shadow-cyan-500/40 flex items-center justify-center space-x-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                        <span>Acessar Portal Corporativo</span>
+                    </button>
+                    <button type="button" onclick="window.openAuthModal('register')" class="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/40 text-slate-200 hover:text-white font-semibold text-xs sm:text-sm transition duration-150 flex items-center justify-center space-x-2 shadow-sm">
+                        <span>Solicitar Cadastro (10 Créditos)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="mainAppContent" class="hidden space-y-6">
+        <div class="bg-cardbg rounded-2xl border border-cardborder shadow-xl p-6 sm:p-8">
+            <form id="searchForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Tipo de Consulta</label>
+                        <select id="queryType" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-100 text-sm focus:ring-2 focus:ring-cyan-500 outline-none cursor-pointer">
+                            <option value="cpf">CPF (Pessoa Física)</option>
+                            <option value="nome">Nome Completo</option>
+                            <option value="telefone">Telefone / Celular</option>
+                            <option value="placa">Placa de Veículo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Base / Módulo Alvo</label>
+                        <select id="targetBase" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-100 text-sm focus:ring-2 focus:ring-cyan-500 outline-none cursor-pointer font-medium">
+                            <option value="SIMPLES">SIMPLES (Triagem Rápida)</option>
+                            <option value="SYNC">SYNC (Sincronizado Amplo)</option>
+                            <option value="RECEITA">RECEITA (Oficial RFB)</option>
+                            <option value="CREDLINK">CREDLINK (Cadastral Amplo)</option>
+                            <option value="BIOMETRIA">BIOMETRIA (Validação Facial)</option>
+                            <option value="SI-PNI">SI-PNI (Vacinação / Saúde)</option>
+                            <option value="NACIONAL">NACIONAL (Base Consolidada)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+                        <span>Termo de Pesquisa</span>
+                        <span id="inputHint" class="text-[11px] font-normal text-cyan-400">Digite o CPF</span>
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="queryValue" required placeholder="Ex: 000.000.000-00" autocomplete="off"
+                            class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-slate-100 text-sm placeholder-slate-500 focus:ring-2 focus:ring-cyan-500 outline-none">
+                        <button type="button" id="clearInputBtn" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row items-center gap-3">
+                    <button type="submit" id="submitBtn" class="w-full sm:flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3.5 px-6 rounded-xl transition duration-200 shadow-lg shadow-cyan-600/20 flex items-center justify-center space-x-2 text-sm disabled:opacity-50">
+                        <svg id="submitIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <span id="submitText">Executar Consulta</span>
+                    </button>
+                    <button type="button" id="btnOpenPlans" class="w-full sm:w-auto px-4 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-cyan-300 hover:text-white transition flex items-center justify-center space-x-1.5 shadow-sm">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Recarregar Créditos (Pix)</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="loading" class="hidden bg-cardbg rounded-2xl border border-cardborder p-8 text-center space-y-4 shadow-xl">
+            <div class="inline-flex relative">
+                <div class="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center"><div class="w-3 h-3 bg-cyan-400 rounded-full animate-ping"></div></div>
+            </div>
+            <div>
+                <h3 class="text-base font-semibold text-white">Processando Requisição Corporativa</h3>
+                <p class="text-slate-400 text-xs sm:text-sm mt-1">Conectando ao gateway de mensageria e executando triagem segura...</p>
+            </div>
+        </div>
+
+        <!-- SMART MODULE SUGGESTION CARD (FALLBACK INTERATIVO) -->
+        <div id="fallbackCard" class="hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/40 via-slate-900 to-amber-950/20 p-6 sm:p-7 shadow-2xl backdrop-blur-md">
+            <div class="flex items-start space-x-4">
+                <div class="flex-shrink-0 p-3 bg-amber-500/20 rounded-xl border border-amber-500/40 text-amber-400 shadow-lg shadow-amber-500/10">
+                    <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <div class="flex-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 rounded-md border border-amber-500/40">Módulo Indisponível</span>
+                        <span class="text-xs text-slate-400">Base solicitada: <strong id="fallbackRequestedBase" class="text-white"></strong></span>
+                    </div>
+                    <h3 class="text-lg sm:text-xl font-bold text-white mt-1.5">O módulo solicitado não está disponível para este registro</h3>
+                    <p class="text-xs sm:text-sm text-slate-300 mt-1">
+                        O bot de mensageria indicou que esta base não possui índice direto para o dado informado. Escolha uma das bases reais retornadas abaixo para alternar e consultar instantaneamente:
+                    </p>
+                    <div class="mt-5 pt-4 border-t border-amber-500/20">
+                        <p class="text-xs font-semibold text-amber-300 uppercase tracking-wider mb-3 flex items-center space-x-1.5">
+                            <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            <span>Bases alternativas prontas para consulta:</span>
+                        </p>
+                        <div id="fallbackModulesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="errorCard" class="hidden rounded-2xl border border-rose-500/40 bg-rose-950/20 p-6 shadow-xl text-rose-300 flex items-start space-x-4">
+            <div class="flex-shrink-0 p-2.5 bg-rose-500/20 rounded-xl border border-rose-500/30 text-rose-400">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-base font-bold text-white">Falha na Operação</h4>
+                <p id="errorMessage" class="text-xs sm:text-sm text-rose-200 mt-1"></p>
+            </div>
+        </div>
+
+        <div class="print-header p-4 border-b border-slate-300 mb-6">
+            <h1 class="text-2xl font-bold text-black">Relatório Corporativo de Registros</h1>
+            <p class="text-sm text-slate-600" id="printMetaInfo"></p>
+        </div>
+
+        <!-- RESULTS CONTAINER -->
+        <div id="resultContainer" class="hidden space-y-5">
+            <div id="actionBar" class="bg-cardbg rounded-2xl border border-cardborder p-4 shadow-xl flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center space-x-3">
+                    <span class="px-3 py-1 text-xs font-semibold bg-cyan-950 text-cyan-400 border border-cyan-800 rounded-lg" id="resultBaseBadge">Base: SIMPLES</span>
+                    <span class="text-xs text-slate-400 hidden sm:inline" id="resultFieldsCount"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button type="button" id="toggleViewBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition flex items-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                        <span id="toggleViewText">Ver Texto Limpo</span>
+                    </button>
+                    <button type="button" id="copyAllBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition flex items-center space-x-1.5">
+                        <svg id="copyAllIcon" class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        <span id="copyAllText">Copiar Tudo</span>
+                    </button>
+                    <button type="button" onclick="window.print()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-cyan-950/60 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/80 transition flex items-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                        <span>Imprimir / PDF</span>
+                    </button>
+                </div>
+            </div>
+            <div id="cardsContainer" class="space-y-5"></div>
+            <div id="plainTextContainer" class="hidden bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-xl">
+                <div class="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Texto Limpo Formatado (Sem marcações brutas)</span>
+                    <span class="text-[11px] text-slate-500 font-mono">UTF-8 Plain Text</span>
+                </div>
+                <pre id="plainTextOutput" class="whitespace-pre-wrap font-mono text-xs sm:text-sm text-slate-200 leading-relaxed bg-slate-950 p-5 rounded-xl border border-slate-800/80 overflow-x-auto"></pre>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <footer class="w-full text-center py-6 text-xs text-slate-500 space-y-1">
+        <p>Central de Inteligência Corporativa &copy; 2026 &bull; Gateway de Mensageria Criptografada</p>
+        <p class="text-[11px] text-slate-600">Acesso Restrito &bull; Conformidade e Segurança da Informação</p>
+    </footer>
+
+    <!-- MODAL DE AUTENTICAÇÃO (LOGIN / REGISTRO / RECUPERAÇÃO) -->
+    <div id="authModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+        <div class="relative w-full max-w-md corporate-glass rounded-3xl p-6 sm:p-8 space-y-5 my-auto max-h-[90vh] overflow-y-auto">
+            <div class="absolute -top-16 -right-16 w-48 h-48 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none animate-pulse-glow"></div>
+            <div class="absolute -bottom-16 -left-16 w-48 h-48 bg-blue-600/15 rounded-full blur-2xl pointer-events-none animate-pulse-glow" style="animation-delay: 1.5s;"></div>
+
+            <button type="button" id="authModalCloseBtn" class="close-modal-btn absolute top-4 right-4 z-50 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition shadow-sm cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="text-center relative z-10">
+                <h3 class="text-xl sm:text-2xl font-bold text-white tracking-tight" id="authModalTitle">Acessar Sistema</h3>
+                <p class="text-xs text-slate-400 mt-1" id="authModalSubtitle">Faça login com suas credenciais corporativas</p>
+            </div>
+            <!-- TABS -->
+            <div class="flex rounded-xl bg-slate-900/90 p-1 border border-slate-800 text-xs font-semibold relative z-10">
+                <button type="button" id="tabAuthLogin" class="flex-1 py-2 rounded-lg bg-cyan-600 text-white transition shadow-sm">Entrar</button>
+                <button type="button" id="tabAuthRegister" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Criar Conta</button>
+                <button type="button" id="tabAuthReset" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Recuperar</button>
+            </div>
+            <!-- FORM -->
+            <form id="authForm" class="space-y-3.5 relative z-10">
+                <div id="authFullNameGroup" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Nome Completo</label>
+                    <input type="text" id="authFullName" placeholder="Seu nome completo" maxlength="60" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-cyan-500 outline-none transition">
+                    <span class="block text-[10px] text-slate-500 mt-0.5">Apenas letras, espaços e acentos</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">E-mail Corporativo</label>
+                    <input type="email" id="authEmail" required placeholder="operador@empresa.com" maxlength="80" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-cyan-500 outline-none transition">
+                </div>
+                <div id="authPasswordGroup">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Senha</label>
+                    <input type="password" id="authPassword" required placeholder="••••••••" minlength="6" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-cyan-500 outline-none transition">
+                    <span id="authPasswordHint" class="hidden text-[10px] text-slate-500 mt-0.5">Mínimo de 6 caracteres</span>
+                </div>
+                <div id="authConfirmPasswordGroup" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Confirmar Senha</label>
+                    <input type="password" id="authConfirmPassword" placeholder="Repita a senha criada" minlength="6" class="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-cyan-500 outline-none transition">
+                </div>
+                <div id="authTermsGroup" class="hidden pt-1">
+                    <label class="flex items-start space-x-2.5 cursor-pointer text-xs text-slate-300">
+                        <input type="checkbox" id="authTermsCheckbox" class="mt-0.5 rounded bg-slate-900 border-slate-700 text-cyan-500 focus:ring-cyan-500 h-4 w-4">
+                        <span class="leading-tight select-none">
+                            Li e concordo com os <button type="button" id="linkOpenTermsInsideAuth" class="text-cyan-400 hover:underline font-semibold">Termos de Uso</button> e Política de Privacidade (LGPD).
+                        </span>
+                    </label>
+                </div>
+                <div id="authAlert" class="hidden p-3 rounded-xl text-xs"></div>
+                <button type="submit" id="authSubmitBtn" class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-3 rounded-xl transition text-sm shadow-lg shadow-cyan-600/25">
+                    <span id="authSubmitText">Entrar na Plataforma</span>
+                </button>
+            </form>
+            <div id="authBonusNote" class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 text-[11px] text-slate-400 text-center relative z-10">
+                ✨ <strong class="text-cyan-400">Bônus de Boas-Vindas:</strong> Novos cadastros recebem 10 créditos para consultas imediatas!
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DO PAINEL DO USUÁRIO -->
+    <div id="userDashboardModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+        <div class="relative w-full max-w-2xl bg-cardbg rounded-3xl border border-cardborder shadow-2xl p-5 sm:p-8 space-y-6 my-auto max-h-[90vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 z-50 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="flex items-center space-x-4 pr-10">
+                <img id="dashUserAvatar" src="" alt="Avatar" class="w-14 h-14 rounded-2xl border-2 border-cyan-500 object-cover shadow-lg">
+                <div>
+                    <h3 class="text-xl font-bold text-white" id="dashUserName">Operador Corporativo</h3>
+                    <p class="text-xs text-slate-400" id="dashUserEmail">operador@empresa.com</p>
+                    <div class="flex items-center space-x-2 mt-1">
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded uppercase bg-emerald-950 text-emerald-400 border border-emerald-800" id="dashUserStatus">Ativo</span>
+                        <span class="px-2 py-0.5 text-[10px] font-bold rounded uppercase bg-cyan-950 text-cyan-400 border border-cyan-800" id="dashUserRole">Operador</span>
+                    </div>
+                </div>
+            </div>
+            <!-- VIGÊNCIA E TEMPO ATIVO CARD -->
+            <div class="p-5 rounded-2xl bg-gradient-to-r from-cyan-950/60 via-slate-900 to-blue-950/60 border border-cyan-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold flex items-center space-x-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        <span>Plano &amp; Vigência Ativa</span>
+                    </span>
+                    <div class="text-2xl sm:text-3xl font-mono font-extrabold text-white mt-1 flex items-center space-x-2">
+                        <span id="dashTimeIcon">⏱️</span>
+                        <span id="dashTimeRemaining">--:--:--</span>
+                    </div>
+                    <span class="text-[11px] text-cyan-300/80 block mt-0.5" id="dashExpiresDate">Expira em: Calculando...</span>
+                </div>
+                <button type="button" id="dashBtnRecharge" class="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition shadow-lg shadow-cyan-600/30 flex items-center justify-center space-x-1.5">
+                    <span>Renovar / Adicionar Tempo</span>
+                </button>
+            </div>
+            <!-- TABS DO DASHBOARD -->
+            <div class="flex rounded-xl bg-slate-900 p-1 border border-slate-800 text-xs font-semibold">
+                <button type="button" id="tabDashHistory" class="flex-1 py-2 rounded-lg bg-cyan-600 text-white transition">Histórico de Acesso &amp; Consultas</button>
+                <button type="button" id="tabDashConfig" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Configurações de Perfil</button>
+            </div>
+            <!-- CONTEÚDO HISTÓRICO -->
+            <div id="dashHistorySection" class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Histórico de Planos &amp; Atividades</span>
+                    <button type="button" id="btnRefreshHistory" class="text-xs text-cyan-400 hover:underline">Atualizar</button>
+                </div>
+                <div id="dashHistoryList" class="max-h-60 overflow-y-auto space-y-2 pr-1"></div>
+            </div>
+            <!-- CONTEÚDO CONFIGURAÇÕES -->
+            <div id="dashConfigSection" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-2">Escolher Avatar</label>
+                    <div class="grid grid-cols-4 gap-2" id="avatarPresetsGrid"></div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Nome Completo</label>
+                    <input type="text" id="dashInputName" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white outline-none">
+                </div>
+                <button type="button" id="btnSaveProfile" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-semibold py-2.5 rounded-xl text-xs transition">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE SENHA ADMINISTRATIVA -->
+    <div id="adminPasswordPromptModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+        <div class="relative w-full max-w-sm bg-cardbg rounded-3xl border border-purple-500/40 shadow-2xl p-6 sm:p-7 space-y-4 text-center my-auto max-h-[90vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 z-50 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition shadow-sm cursor-pointer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="w-12 h-12 rounded-xl bg-purple-950/80 border border-purple-700/60 text-purple-400 mx-auto flex items-center justify-center">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            </div>
+            <div>
+                <h3 class="text-lg font-bold text-white">Autenticação de Segurança ADM</h3>
+                <p class="text-xs text-slate-400 mt-1">Digite a senha mestre de Administrador para liberar o painel ADM.</p>
+            </div>
+            <form id="adminPasswordPromptForm" class="space-y-3">
+                <input type="password" id="adminPromptPassword" required placeholder="Digite a senha de administrador" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-purple-500 outline-none text-center">
+                <div id="adminPromptAlert" class="hidden p-2.5 rounded-lg text-xs bg-rose-950 text-rose-300 border border-rose-800"></div>
+                <div class="flex items-center space-x-2">
+                    <button type="button" class="close-modal-btn flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition">Cancelar</button>
+                    <button type="submit" id="btnConfirmAdminPrompt" class="flex-1 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition shadow-lg shadow-purple-600/30">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL ADMINISTRATIVO (ADM) -->
+    <div id="adminModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+        <div class="relative w-full max-w-4xl bg-cardbg rounded-3xl border border-cardborder shadow-2xl p-5 sm:p-8 space-y-6 my-auto max-h-[90vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 z-50 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pr-10">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2.5 rounded-xl bg-purple-950 border border-purple-800 text-purple-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-white">Painel de Controle Administrativo (ADM)</h3>
+                        <p class="text-xs text-slate-400">Gerenciamento de contas, liberação de cadastros e vigência</p>
+                    </div>
+                </div>
+                <button type="button" id="btnAdminGenerateTrial" class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs transition shadow-md flex items-center space-x-1.5 flex-shrink-0">
+                    <span>⚡ Gerar Usuário Teste (Trial 20 min)</span>
+                </button>
+            </div>
+            <!-- SUB-TABS ADM -->
+            <div class="flex rounded-xl bg-slate-900 p-1 border border-slate-800 text-xs font-semibold">
+                <button type="button" id="tabAdminUsers" class="flex-1 py-2 rounded-lg bg-purple-600 text-white transition">Usuários Cadastrados</button>
+                <button type="button" id="tabAdminCreate" class="flex-1 py-2 rounded-lg text-slate-400 hover:text-white transition">Criar Usuário Manualmente</button>
+            </div>
+            <!-- LISTA DE USUÁRIOS -->
+            <div id="adminUsersSection" class="space-y-3">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900 uppercase text-[10px] text-slate-400 tracking-wider">
+                            <tr>
+                                <th class="p-3">Usuário</th>
+                                <th class="p-3">Créditos</th>
+                                <th class="p-3">Cargo</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUsersTableBody" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- FORM CRIAR USUÁRIO -->
+            <div id="adminCreateSection" class="hidden space-y-4 max-w-lg mx-auto p-4 bg-slate-900/60 rounded-xl border border-slate-800">
+                <h4 class="text-sm font-bold text-white">Cadastrar Novo Usuário</h4>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Nome</label>
+                    <input type="text" id="adminNewName" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">E-mail</label>
+                    <input type="email" id="adminNewEmail" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Créditos Iniciais</label>
+                        <input type="number" id="adminNewCredits" value="20" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Nível de Acesso</label>
+                        <select id="adminNewRole" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-xs text-white">
+                            <option value="user">Operador (User)</option>
+                            <option value="admin">Administrador (Admin)</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="button" id="btnAdminSubmitUser" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2.5 rounded-xl text-xs transition">Criar Usuário no Sistema</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE PLANOS E PREÇOS POR TEMPO -->
+    <div id="plansModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+        <div class="relative w-full max-w-5xl bg-cardbg rounded-3xl border border-cardborder shadow-2xl p-5 sm:p-8 space-y-6 my-auto max-h-[90vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 z-50 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="text-center max-w-xl mx-auto pr-8">
+                <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-cyan-950 text-cyan-400 rounded-md border border-cyan-800">Assinatura &amp; Aluguel por Tempo (Woovi Pix)</span>
+                <h3 class="text-2xl font-bold text-white mt-2">Planos de Acesso por Vigência</h3>
+                <p class="text-xs text-slate-400 mt-1">Consultas ilimitadas durante o período contratado com liberação imediata via Pix.</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5" id="plansPackagesGrid">
+                <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3 hover:border-cyan-500/50 transition">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase bg-slate-800 text-slate-300 px-2 py-0.5 rounded">Rápido</span>
+                        <h4 class="text-sm font-bold text-white mt-1.5">1 Hora</h4>
+                        <div class="text-xl font-extrabold text-cyan-400 mt-1">R$ 10,00</div>
+                        <p class="text-[11px] text-slate-400 mt-1">60 minutos de uso</p>
+                    </div>
+                    <button type="button" onclick="window.initiatePixCheckout('1h', 10.00, '1 Hora')" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition">Assinar Pix</button>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3 hover:border-cyan-500/50 transition">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase bg-slate-800 text-slate-300 px-2 py-0.5 rounded">Turno</span>
+                        <h4 class="text-sm font-bold text-white mt-1.5">12 Horas</h4>
+                        <div class="text-xl font-extrabold text-cyan-400 mt-1">R$ 30,00</div>
+                        <p class="text-[11px] text-slate-400 mt-1">Plantão ou expediente</p>
+                    </div>
+                    <button type="button" onclick="window.initiatePixCheckout('12h', 30.00, '12 Horas')" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition">Assinar Pix</button>
+                </div>
+                <div class="p-4 rounded-2xl bg-gradient-to-b from-cyan-950/50 to-slate-900 border-2 border-cyan-500/70 flex flex-col justify-between space-y-3 shadow-lg shadow-cyan-500/10">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase bg-cyan-500 text-slate-950 px-2 py-0.5 rounded font-extrabold">Popular</span>
+                        <h4 class="text-sm font-bold text-white mt-1.5">1 Dia (24h)</h4>
+                        <div class="text-xl font-extrabold text-cyan-300 mt-1">R$ 50,00</div>
+                        <p class="text-[11px] text-slate-400 mt-1">24 horas completas</p>
+                    </div>
+                    <button type="button" onclick="window.initiatePixCheckout('24h', 50.00, '1 Dia (24h)')" class="w-full py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-extrabold text-xs transition shadow-md">Assinar Pix</button>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3 hover:border-cyan-500/50 transition">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase bg-slate-800 text-slate-300 px-2 py-0.5 rounded">Econômico</span>
+                        <h4 class="text-sm font-bold text-white mt-1.5">1 Semana</h4>
+                        <div class="text-xl font-extrabold text-cyan-400 mt-1">R$ 100,00</div>
+                        <p class="text-[11px] text-slate-400 mt-1">7 dias corridos</p>
+                    </div>
+                    <button type="button" onclick="window.initiatePixCheckout('7d', 100.00, '1 Semana')" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs transition">Assinar Pix</button>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col justify-between space-y-3 hover:border-cyan-500/50 transition">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase bg-purple-950 text-purple-300 border border-purple-800 px-2 py-0.5 rounded">VIP</span>
+                        <h4 class="text-sm font-bold text-white mt-1.5">1 Mês</h4>
+                        <div class="text-xl font-extrabold text-purple-400 mt-1">R$ 150,00</div>
+                        <p class="text-[11px] text-slate-400 mt-1">30 dias corridos</p>
+                    </div>
+                    <button type="button" onclick="window.initiatePixCheckout('30d', 150.00, '1 Mês')" class="w-full py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs transition">Assinar Pix</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE PAGAMENTO PIX WOOVI -->
+    <div id="pixModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+        <div class="relative w-full max-w-md bg-cardbg rounded-3xl border border-cardborder shadow-2xl p-6 sm:p-7 space-y-4 my-auto text-center max-h-[90vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 z-50 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="pr-8">
+                <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-emerald-950 text-emerald-400 rounded-md border border-emerald-800">Pagamento Instantâneo Pix</span>
+                <h3 class="text-xl font-bold text-white mt-1.5" id="pixModalPackageName">Ativação de Plano</h3>
+                <div class="text-3xl font-extrabold text-emerald-400 mt-0.5" id="pixModalAmount">R$ 0,00</div>
+            </div>
+            <!-- QR CODE -->
+            <div class="p-3 bg-white rounded-2xl inline-block shadow-inner mx-auto">
+                <img id="pixQrCodeImg" src="" alt="QR Code Pix" class="w-48 h-48 object-contain">
+            </div>
+            <!-- COPIA E COLA -->
+            <div class="space-y-2 text-left">
+                <label class="block text-xs font-semibold text-slate-400">Pix Copia e Cola:</label>
+                <textarea id="pixCopiaColaText" readonly rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-[11px] font-mono text-slate-300 resize-none outline-none select-all"></textarea>
+                <button type="button" id="btnCopyPix" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 text-xs font-semibold transition flex items-center justify-center space-x-1.5">
+                    <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                    <span id="btnCopyPixText">Copiar Código Pix</span>
+                </button>
+            </div>
+            <!-- STATUS VERIFIER -->
+            <div class="pt-2 border-t border-slate-800 flex flex-col gap-2">
+                <button type="button" id="btnCheckPixStatus" class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition">Já Paguei / Verificar Ativação</button>
+                <button type="button" id="btnSimulatePixPayment" class="text-[11px] text-cyan-400 hover:underline">⚡ Simular Pagamento Instantâneo (Ambiente de Teste)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INSTITUCIONAL: FAQ -->
+    <div id="faqModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+        <div class="relative w-full max-w-2xl bg-cardbg rounded-3xl border border-cardborder shadow-2xl p-5 sm:p-8 space-y-5 my-auto max-h-[90vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 z-50 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="pr-8">
+                <h3 class="text-xl font-bold text-white">Dúvidas Frequentes (FAQ)</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Esclarecimentos sobre o modelo de tempo e funcionamento das bases.</p>
+            </div>
+            <div class="space-y-3 text-xs text-slate-300">
+                <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800">
+                    <strong class="text-cyan-400 block mb-1">Como funciona o modelo de tempo de acesso?</strong>
+                    <span>Ao assinar um plano (1h, 12h, 24h, 1 semana ou 1 mês), você ganha acesso ilimitado para realizar pesquisas durante todo o período ativo sem limites de créditos.</span>
+                </div>
+                <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800">
+                    <strong class="text-cyan-400 block mb-1">E se o bot do Telegram pedir escolha de base (Nome ou CPF)?</strong>
+                    <span>O sistema exibe na tela um alerta elegante com botões reais das bases retornadas (ex: Simples, Sync, Receita, SI-PNI, Credlink, etc.). Basta clicar no botão desejado para a consulta ser concluída instantaneamente.</span>
+                </div>
+                <div class="p-3 bg-slate-900/80 rounded-xl border border-slate-800">
+                    <strong class="text-cyan-400 block mb-1">Como funciona o usuário teste (Trial)?</strong>
+                    <span>O usuário de teste conta com 20 minutos de uso gratuito, limite de 20 consultas e um delay de 60 segundos entre cada busca para fins de demonstração.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL INSTITUCIONAL: TERMOS DE USO -->
+    <div id="termsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+        <div class="relative w-full max-w-2xl bg-cardbg rounded-3xl border border-cardborder shadow-2xl p-5 sm:p-8 space-y-5 my-auto max-h-[90vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 z-50 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="pr-8">
+                <h3 class="text-xl font-bold text-white">Termos de Uso e Conformidade</h3>
+                <p class="text-xs text-slate-400 mt-0.5">Política de Privacidade, Segurança da Informação e LGPD.</p>
+            </div>
+            <div class="space-y-2 text-xs text-slate-300 leading-relaxed max-h-72 overflow-y-auto pr-2">
+                <p>1. O acesso a este portal corporativo é restrito a operadores autorizados para validação cadastral legítima, prevenção a fraudes e conformidade.</p>
+                <p>2. O usuário concorda em obedecer às diretrizes da LGPD (Lei nº 13.709/2018), sendo terminantemente proibida a comercialização ou repasse ilegal de dados.</p>
+                <p>3. Todas as requisições de consulta são registradas em auditoria para rastreabilidade e segurança jurídica.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CARTÃO DE ACESSO TESTE (TRIAL) -->
+    <div id="trialCardModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+        <div class="relative w-full max-w-md corporate-glass rounded-3xl p-6 sm:p-8 space-y-4 my-auto text-center max-h-[90vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 z-50 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+            <div class="w-14 h-14 rounded-2xl bg-amber-950/80 border border-amber-500/40 text-amber-400 mx-auto flex items-center justify-center text-2xl shadow-xl">
+                ⚡
+            </div>
+            <div>
+                <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 rounded-md border border-amber-500/40">Usuário Teste Criado</span>
+                <h3 class="text-xl font-bold text-white mt-1">Cartão de Acesso Pronto</h3>
+                <p class="text-xs text-slate-400 mt-1">Envie estas credenciais para o cliente testar por 20 minutos.</p>
+            </div>
+            <div class="p-3 bg-slate-900 border border-slate-700 rounded-xl text-left font-mono text-xs text-slate-200 whitespace-pre-wrap selection:bg-cyan-500/30 leading-relaxed" id="trialCardText"></div>
+            <button type="button" id="btnCopyTrialCard" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold text-xs transition shadow-lg shadow-amber-600/30 flex items-center justify-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                <span id="btnCopyTrialText">Copiar Cartão Completo</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- WIDGET FLUTUANTE DE SUPORTE TELEGRAM -->
+    <a href="https://t.me/centraldo7chat" target="_blank" rel="noopener noreferrer" 
+       class="floating-support fixed bottom-5 right-5 z-40 group flex items-center space-x-2.5 px-4 py-2.5 rounded-2xl bg-slate-900/90 hover:bg-sky-950 border border-slate-700/80 hover:border-sky-500 shadow-2xl backdrop-blur-md transition duration-200 hover:scale-105">
+        <div class="relative flex-shrink-0">
+            <img src="https://telegram.org/img/t_logo.png" alt="Telegram Support" class="w-7 h-7 rounded-full shadow-md">
+            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-slate-900"></span>
+        </div>
+        <div class="text-left hidden sm:block">
+            <span class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Atendimento 24/7</span>
+            <span class="block text-xs font-bold text-white group-hover:text-sky-300 transition-colors">Suporte Telegram</span>
+        </div>
+    </a>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
